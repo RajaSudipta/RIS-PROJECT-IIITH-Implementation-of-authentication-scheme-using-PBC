@@ -14,7 +14,7 @@
 
     Step 7: Navigate to the ris folder (cd ~/Desktop/ris/pbc-0.5.14/)
 
-    Step 8: ./configure
+    Step 8: open a Terminal in the above location(~/Desktop/ris/pbc-0.5.14/) and run ./configure
 
     Step 9: make
 
@@ -22,15 +22,17 @@
 
     Step 11: sudo gedit /etc/ld.so.conf.d/newlib.conf
 
-    Step 12: put this in gedit file -> /usr/local/lib and save it
+    Step 12: put this (/usr/local/lib) in gedit file and save it
 
     Step 13: sudo ldconfig
 
     Step 14: sudo apt-get install libgpg-error-dev
     
-2. Extract our codebase zip in the "ris" folder which was created in Desktop
+2. Extract our codebase zip in the "ris" folder which was created in Desktop and make sure that pbc-0.5.14
+   and the extracted folder(3_2021801005_2021202011_2021202020) are in the same directory. 
 
-3. Now open 3 terminals from location "~/Desktop/ris" and run these commands
+3. Now open 3 terminals from location "~/Desktop/ris/3_2021801005_2021202011_2021202020" and run the followig
+   commands
 
 4. Terminal 1(for AP)
     cd AP
