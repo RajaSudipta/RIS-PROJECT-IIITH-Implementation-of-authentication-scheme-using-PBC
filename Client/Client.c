@@ -392,6 +392,70 @@ int main(int argc, char **argv)
 	}
 	printf("Sending file successful\n");
 
+	/* Sending .txt file over network with session key*/
+	// printf("\n****************************************** Sending file over network ****************************************** \n");
+	// // buf[1024];
+	// // hash[32];
+	// bzero(hash, 32);
+	// bzero(enc_key, 32);
+	// sha256(SKc_bytes, 128, hash);
+	// memcpy(enc_key, hash, 32);
+	// bzero(buf, 1024);
+	// int fd_read;
+	// unsigned long long offset_pos = 0;
+	// char *fileName = "ABC.txt";
+	// fd_read = open(fileName, O_RDONLY);
+	// if ((fd_read != -1))
+	// {
+	// 	while (1)
+	// 	{
+	// 		bzero(buf, 1024);
+	// 		unsigned long long r = pread(fd_read, buf, 1 * 1024, offset_pos);
+	// 		if (r <= 0)
+	// 		{
+	// 			break;
+	// 		}
+	// 		int k = min(r, 1024);
+	// 		printf("length: %d\n", k);
+	// 		if(k%16 != 0) // make it nearest multiple of 16 bcoz aes block siz is 16
+	// 		{
+	// 			k = ((k/16)+1)*16;
+	// 		}
+	// 		printf("updated length: %d\n", k);
+	// 		bzero(enc_buf, 1024);
+	// 		encrypt_aes(buf, k, enc_buf, enc_key); // encrypting the text buffer buf with key enc_key
+	// 		// if (sendto(sfd, buf, k, 0, (struct sockaddr *)&ap_address, sizeof(ap_address)) == -1)
+	// 		// {
+	// 		// 	printf("Sendto failed\n");
+	// 		// }
+	// 		if (sendto(sfd, enc_buf, k, 0, (struct sockaddr *)&ap_address, sizeof(ap_address)) == -1)
+	// 		{
+	// 			printf("Sendto failed\n");
+	// 		}
+	// 		else
+	// 		{
+	// 			printf("sent data = %s\n", buf);
+	// 		}
+	// 		offset_pos += r;
+	// 	}
+	// 	close(fd_read);
+	// }
+
+	// bzero(buf, 1024);
+	// char *eofSignal = "NULLSNULLSNULLS";
+	// strcpy(buf, eofSignal);
+	// bzero(enc_buf, 1024);
+	// encrypt_aes(buf, 16, enc_buf, enc_key); // encrypting the text buffer buf with key enc_key
+	// if (0 > sendto(sfd, enc_buf, 16, 0, (struct sockaddr *)&ap_address, sizeof(ap_address)) == -1)
+	// {
+	// 	printf("last write (NULLS) failed\n");
+	// }
+	// else
+	// {
+	// 	printf("sent data = %s\n", buf);
+	// }
+	// printf("Sending file successful\n");
+
 	/*element_clear(P);
 	element_clear(Snm);
 	element_clear(Gnm);

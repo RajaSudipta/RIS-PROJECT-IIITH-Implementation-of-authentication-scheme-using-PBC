@@ -364,6 +364,7 @@ printf("Sendto failed\n");
 		// printf("\nXXXXXXXXXXXXXXXXAuthentication FailedXXXXXXXXXXXXXXXXXXXXX\n\n");
 	}
 
+	/* receiving .txt file over network */
 	printf("\n ****************************************** Receiving file over network ****************************************** \n");
 	unsigned long long offset_pos = 0;
 	unsigned long long r;
@@ -406,6 +407,75 @@ printf("Sendto failed\n");
 	}
 	close(fd_write);
 	printf("\n Receiving file successful \n");
+
+	/* receiving .txt file over network with session key*/
+	// printf("\n ****************************************** Receiving file over network ****************************************** \n");
+	// // buf[1024];
+	// // hash[32];
+	// bzero(hash, 32);
+	// bzero(dec_key, 32);
+	// sha256(SKap_bytes, 128, hash);
+	// memcpy(dec_key, hash, 32);
+	// unsigned long long offset_pos = 0;
+	// unsigned long long r;
+	// int fd_write;
+	// char *destn_loc = "ABC.txt";
+	// fd_write = open(destn_loc, O_CREAT | O_WRONLY, 0777);
+	// if (fd_write == -1)
+	// {
+	// 	// msg("Error Occured opening file");
+	// }
+	// while (1)
+	// {
+	// 	bzero(buf, 1024);
+	// 	bzero(dec_buf, 1024);
+	// 	int len = recvfrom(sfd, dec_buf, 1024, 0, 0, 0);
+	// 	printf("length: %d\n", len);
+	// 	decrypt_aes(dec_buf, len, buf, dec_key); // decrypting the text buffer buf with key enc_key
+	// 	int updated_length = 0;
+	// 	for(int i=0; i<len; i++)
+	// 	{
+	// 		if(buf[i] == '\0')
+	// 		{
+	// 			break;
+	// 		}
+	// 		else
+	// 		{
+	// 			updated_length++;
+	// 		}
+	// 	}
+	// 	printf("updated length: %d\n", updated_length);
+	// 	len = updated_length;
+	// 	if (len < 0)
+	// 	{
+	// 		printf("Receiving failed\n");
+	// 		break;
+	// 	}
+	// 	else if (len == 0)
+	// 	{
+	// 		printf("Time to leave\n");
+	// 		break;
+	// 	}
+	// 	else if (len > 0)
+	// 	{
+	// 		char *resposne = buf;
+	// 		printf("received data = %s\n\n", buf);
+	// 		// if (strcmp(resposne, "NULLSNULLSNULLS") == 0|| (resposne == "" )|| (resposne == "\n" )|| (resposne == " " ))
+	// 		if (strcmp(resposne, "NULLSNULLSNULLS") == 0)
+			
+	// 		{
+	// 			// printf("%s\n", resposne);
+	// 			break;
+	// 		}
+	// 		else
+	// 		{
+	// 			unsigned long long rs = pwrite(fd_write, buf, len, offset_pos);
+	// 			offset_pos += rs;
+	// 		}
+	// 	}
+	// }
+	// close(fd_write);
+	// printf("\n Receiving file successful \n");
 
 	/*element_clear(P);
 	element_clear(Snm);
