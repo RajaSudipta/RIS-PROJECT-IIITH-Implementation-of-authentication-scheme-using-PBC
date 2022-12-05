@@ -18,6 +18,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <cbor.h>
 #define CLIENT_PORT 50000
 #define NM_PORT 40000
 #define AP_PORT 60000

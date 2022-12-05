@@ -6,6 +6,10 @@
 
     Step 3: sudo apt-get install libgmp3-dev
 
+    Step 3: sudo add-apt-repository universe
+
+    Step 3: sudo apt-get install libcbor-dev
+
     Step 4: Download pbc library from this link -> https://crypto.stanford.edu/pbc/files/pbc-0.5.14.tar.gz
 
     Step 5: Create a new Folder somewhere(Desktop) in the name let's say "ris"

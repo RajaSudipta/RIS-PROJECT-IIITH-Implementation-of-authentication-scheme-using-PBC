@@ -3,7 +3,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/cpplite/CTemplate.c to edit this template
  */
 
-// gcc AP.c -o AP -L. -lpbc -lgmp
+// gcc AP.c -o AP -L. -lpbc -lgmp -lcbor
 // ./AP <../a.param
 // ./AP <~/Desktop/ris/pbc-0.5.14/param/a.param
 
@@ -23,6 +23,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <cbor.h>
 #include "aes.h"
 #include "aes.c"
 #include "sha256.h"
@@ -53,10 +54,13 @@ struct m3
 
 int main(int argc, char **argv)
 {
+	/* Preallocate the map structure CBOR */
+	cbor_item_t * root = cbor_new_definite_map(1);
 
 	int sfd, len;
 	struct sockaddr_in client_address, nm_address, ap_address;
 	unsigned char buf[1024];
+	unsigned char temp_buf[1024];
 	element_t temp;
 	pairing_t pairing;
 	element_t g, h;
@@ -70,7 +74,8 @@ int main(int argc, char **argv)
 
 	int IDap = 100, IDc = 200;
 	struct timeval now;
-	unsigned long time1, time2, pres_time, prev_time;
+	unsigned long time1, time2, pres_time, prev_time, prev_time_m2, pres_time_m2;
+	unsigned long prev_time_file, pres_time_file;
 
 	pbc_demo_pairing_init(pairing, argc, argv);
 
@@ -196,8 +201,16 @@ int main(int argc, char **argv)
 	unsigned char SKap_bytes[128];
 
 	printf("\n****************************************** Waiting for message from Client ****************************************** \n");
-	len = recvfrom(sfd, buf, 1024, 0, 0, 0);
-	printf("Received Authentication message from Client of size %d\n\n", len);
+	// len = recvfrom(sfd, buf, 1024, 0, 0, 0);
+	len = recvfrom(sfd, temp_buf, 1024, 0, 0, 0);
+	memcpy(buf, temp_buf+6, 288);
+	// for(int i=0;i<294;i++)
+	// {
+	// 	printf("%hhu ",temp_buf[i]);
+	// }
+	// printf("\n");
+	
+	printf("Received Authentication message from Client of size: %d and percent reduction: %f\n\n", len, (100.0-(len/388.0)*100));
 	printf("\n****************************************** Verification of message m1 ****************************************** \n");
 	element_init_G1(T1, pairing);
 	element_from_bytes(T1, buf);
@@ -274,6 +287,9 @@ printf("Sendto failed\n");
 
 	/**************Phase-2 Authentication i.e. Message m2 Generation********************/
 	printf("\n ************************* Message m2 Generation ************************* \n\n");
+	gettimeofday(&now, NULL);
+	prev_time_m2 = now.tv_sec * 1000000 + now.tv_usec;
+
 	element_init_Zr(Yap, pairing);
 	element_random(Yap);
 	element_printf("system parameter Yap = %B\n\n", Yap);
@@ -333,7 +349,37 @@ printf("Sendto failed\n");
 	// printf("\ntime2 is %lu",time2);
 	memcpy(buf + 160, (unsigned char *)&time2, 8);
 
-	if (sendto(sfd, buf, 168, 0, (struct sockaddr *)&client_address, sizeof(client_address)) == -1)
+	// for(int i=0;i<168;i++)
+	// {
+	// 	printf("%hhu ",buf[i]);
+	// }
+
+	/* Add the content */
+	cbor_map_add(root, (struct cbor_pair) {
+		.key = cbor_move(cbor_build_string("1")),
+		.value = cbor_move(cbor_build_bytestring(buf, 168))
+	});
+	
+	/* Output: `length` bytes of data in the `buffer` */
+	unsigned char * buffer;
+	size_t buffer_size, length = cbor_serialize_alloc(root, &buffer, &buffer_size);
+
+	// printf("\nbuffer_size: %lu \n", buffer_size);
+	// printf("\nlength: %lu \n", length);
+
+	// for(int i=0;i<173;i++)
+	// {
+	// 	printf("%hhu ",buffer[i]);
+	// }
+	// printf("\n");
+
+	gettimeofday(&now, NULL);
+	pres_time_m2 = now.tv_sec * 1000000 + now.tv_usec;
+
+	printf("Time for m2 generation is %d microseconds\n", (pres_time_m2 - prev_time_m2));
+	
+	// if (sendto(sfd, buf, 168, 0, (struct sockaddr *)&client_address, sizeof(client_address)) == -1)
+	if (sendto(sfd, buffer, 173, 0, (struct sockaddr *)&client_address, sizeof(client_address)) == -1)
 	{
 		printf("[-] Sendto failed for m2\n");
 	}
@@ -343,8 +389,15 @@ printf("Sendto failed\n");
 	}
 
 	printf("\n****************************************** Waiting for message from Client ****************************************** \n");
-	len = recvfrom(sfd, buf, 1024, 0, 0, 0);
-	printf("Received Authentication message from Client of size %d\n", len);
+	// len = recvfrom(sfd, buf, 1024, 0, 0, 0);
+	len = recvfrom(sfd, temp_buf, 1024, 0, 0, 0);
+	memcpy(buf, temp_buf+5, 32);
+	// for(int i=0;i<37;i++)
+	// {
+	// 	printf("%hhu ",temp_buf[i]);
+	// }
+	// printf("\n");
+	printf("Received Authentication message from Client of size: %d and percent reduction: %f\n\n", len, (100.0-(len/47.0)*100));
 
 	printf("\n****************************************** Verification of message m3 ****************************************** \n");
 
@@ -370,6 +423,7 @@ printf("Sendto failed\n");
 	// unsigned long long r;
 	// int fd_write;
 	// char *destn_loc = "ABC.txt";
+	// // char *destn_loc = "ABC.pdf";
 	// fd_write = open(destn_loc, O_CREAT | O_WRONLY, 0777);
 	// if (fd_write == -1)
 	// {
@@ -408,7 +462,16 @@ printf("Sendto failed\n");
 	// close(fd_write);
 	// printf("\n Receiving file successful \n");
 
-	/* receiving .txt file over network with session key*/
+	/* receiving .txt file over network with session key */
+	len = recvfrom(sfd, buf, 1024, 0, 0, 0);
+	// printf("len: %d\n", len);
+	// for(int i=0;i<8;i++)
+	// {
+	// 	printf("%hhu ",buf[i]);
+	// }
+	// printf("\n");
+	prev_time_file = *((unsigned long*)buf);
+	
 	printf("\n ****************************************** Receiving file over network ****************************************** \n");
 	// buf[1024];
 	// hash[32];
@@ -420,6 +483,7 @@ printf("Sendto failed\n");
 	unsigned long long r;
 	int fd_write;
 	char *destn_loc = "ABC.txt";
+	// char *destn_loc = "ABC.pdf";
 	fd_write = open(destn_loc, O_CREAT | O_WRONLY, 0777);
 	if (fd_write == -1)
 	{
@@ -475,7 +539,14 @@ printf("Sendto failed\n");
 		}
 	}
 	close(fd_write);
-	printf("\n Receiving file successful \n");
+	printf("\n ******************************* Receiving file successful ****************************** \n\n");
+
+	gettimeofday(&now, NULL);
+	pres_time_file = now.tv_sec * 1000000 + now.tv_usec;
+	printf("File time before send: %lu\n", prev_time_file);
+	printf("File time after send: %lu\n", pres_time_file);
+	printf("Total Time for file transfer is %d microseconds\n", (pres_time_file - prev_time_file));
+
 
 	/*element_clear(P);
 	element_clear(Snm);

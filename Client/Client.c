@@ -3,7 +3,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/cpplite/CTemplate.c to edit this template
  */
 
-// gcc Client.c -o Client -L. -lpbc -lgmp
+// gcc Client.c -o Client -L. -lpbc -lgmp -lcbor
 // ./Client <../a.param
 // ./Client <~/Desktop/ris/pbc-0.5.14/param/a.param
 
@@ -24,6 +24,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <cbor.h>
 #include "aes.h"
 #include "aes.c"
 #include "sha256.h"
@@ -68,13 +69,15 @@ int main(int argc, char **argv)
 
 	int IDap = 100, IDc = 200;
 	struct timeval now;
-	unsigned long time1, time2, pres_time, prev_time;
-
+	unsigned long time1, time2, pres_time, prev_time, pres_time_m1, prev_time_m1, pres_time_m3, prev_time_m3;
+	unsigned long prev_time_file;
+	
 	pbc_demo_pairing_init(pairing, argc, argv);
 
 	int sfd, len;
 	struct sockaddr_in client_address, nm_address, ap_address;
 	unsigned char buf[1024];
+	unsigned char temp_buf[1024];
 
 	sfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
@@ -182,6 +185,8 @@ int main(int argc, char **argv)
 
 	/********Client C Authentication message generation********************/
 	printf("\n******************* Message m1 generation phase ******************* \n");
+	gettimeofday(&now, NULL);
+	prev_time_m1 = now.tv_sec * 1000000 + now.tv_usec;
 	element_init_Zr(Xc, pairing);
 	element_random(Xc);
 	element_printf("system parameter Xc = %B\n\n", Xc);
@@ -261,9 +266,35 @@ int main(int argc, char **argv)
 	// element_to_bytes(temp,C1);
 	// memcpy(buf+element_length_in_bytes(T1),temp,element_length_in_bytes(Cs1));
 	// memcpy(buf+sizeof(element_t),(unsigned char*)&T1,sizeof(element_t));
-	// for(int i=0;i<128;i++)
+	// for(int i=0;i<288;i++)
 	// printf("%hhu ",buf[i]);
-	if (sendto(sfd, buf, 288, 0, (struct sockaddr *)&ap_address, sizeof(ap_address)) == -1)
+
+	/* Preallocate the map structure CBOR */
+	cbor_item_t * root = cbor_new_definite_map(1);
+
+	/* Add the content */
+	cbor_map_add(root, (struct cbor_pair) {
+		.key = cbor_move(cbor_build_string("1")),
+		.value = cbor_move(cbor_build_bytestring(buf, 288))
+	});
+	
+	/* Output: `length` bytes of data in the `buffer` */
+	unsigned char * buffer;
+	size_t buffer_size, length = cbor_serialize_alloc(root, &buffer, &buffer_size);
+
+	// printf("\nbuffer_size: %lu \n", buffer_size);
+	// printf("\nlength: %lu \n", length);
+
+	// for(int i=0;i<294;i++)
+	// printf("%hhu ",buffer[i]);
+
+	gettimeofday(&now, NULL);
+	pres_time_m1 = now.tv_sec * 1000000 + now.tv_usec;
+	printf("\nTime for message m1 generation is %d microseconds\n", (pres_time_m1 - prev_time_m1));
+
+
+	// if (sendto(sfd, buf, 288, 0, (struct sockaddr *)&ap_address, sizeof(ap_address)) == -1)
+	if (sendto(sfd, buffer, 294, 0, (struct sockaddr *)&ap_address, sizeof(ap_address)) == -1)
 	{
 		printf("\n[-] Sendto failed for m1\n");
 	}
@@ -275,7 +306,9 @@ int main(int argc, char **argv)
 	/*************************END Encryption , hashing and sending over socket***************/
 
 	printf("\n****************************************** Waiting for message from AP ****************************************** \n");
-	len = recvfrom(sfd, buf, 1024, 0, 0, 0);
+	// len = recvfrom(sfd, buf, 1024, 0, 0, 0);
+	len = recvfrom(sfd, temp_buf, 1024, 0, 0, 0);
+	memcpy(buf, temp_buf+5, 168);
 	memcpy((unsigned char *)&time2, buf + 160, 8);
 	// printf("\ntime2 is %lu",time2);
 	gettimeofday(&now, NULL);
@@ -337,6 +370,12 @@ int main(int argc, char **argv)
 		printf("\n[-] Authentication of message m2 failed????????\n");
 
 	printf("\n******************* Message m3 generation phase ******************* \n");
+	gettimeofday(&now, NULL);
+	prev_time_m3 = now.tv_sec * 1000000 + now.tv_usec;
+
+	printf("\n >>>>>>>>>>> Time calculation for encryption and hashing <<<<<<<<<<<<<<<< \n");
+	printf("\nTime for encryption (AES-256) computation time is %d microseconds\n", (pres_time - prev_time));
+
 	memcpy(SKcK1, SKc_bytes, 128);
 	memcpy(SKcK1 + 128, K1_bytes, 128);
 	memcpy(SKcK1 + 256, Y2_bytes, 128);
@@ -348,7 +387,39 @@ int main(int argc, char **argv)
 	pres_time = now.tv_sec * 1000000 + now.tv_usec;
 	printf("Time for SHA-256 computation time is %d microseconds\n", (pres_time - prev_time));
 
-	if (sendto(sfd, buf, 32, 0, (struct sockaddr *)&ap_address, sizeof(ap_address)) == -1)
+	for(int i=0;i<32;i++)
+	printf("%hhu ",buf[i]);
+	printf("\n");
+
+	/* Preallocate the map structure CBOR */
+	cbor_item_t * root2 = cbor_new_definite_map(1);
+
+	/* Add the content */
+	cbor_map_add(root2, (struct cbor_pair) {
+		.key = cbor_move(cbor_build_string("2")),
+		.value = cbor_move(cbor_build_bytestring(buf, 32))
+	});
+	
+	/* Output: `length` bytes of data in the `buffer` */
+	unsigned char * buffer2;
+	size_t buffer_size2, length2 = cbor_serialize_alloc(root2, &buffer2, &buffer_size2);
+
+	// printf("\nbuffer_size: %lu \n", buffer_size2);
+	// printf("length: %lu \n\n", length2);
+
+	// for(int i=0;i<37;i++)
+	// printf("%hhu ",buffer2[i]);
+	// printf("\n\n");
+
+	gettimeofday(&now, NULL);
+	pres_time_m3 = now.tv_sec * 1000000 + now.tv_usec;
+
+	printf("Time for m3 generation is %d microseconds\n", (pres_time_m3 - prev_time_m3));
+
+	printf("Time for session key generation (m1 + m2 + m3) is %d microseconds\n", (pres_time_m3 - prev_time_m1));
+
+	// if (sendto(sfd, buf, 32, 0, (struct sockaddr *)&ap_address, sizeof(ap_address)) == -1)
+	if (sendto(sfd, buffer2, 37, 0, (struct sockaddr *)&ap_address, sizeof(ap_address)) == -1)
 	{
 		printf("[-] Sendto failed for m3\n");
 	}
@@ -364,6 +435,7 @@ int main(int argc, char **argv)
 	// int fd_read;
 	// unsigned long long offset_pos = 0;
 	// char *fileName = "ABC.txt";
+	// // char *fileName = "ABC.pdf";
 	// fd_read = open(fileName, O_RDONLY);
 	// if ((fd_read != -1))
 	// {
@@ -394,6 +466,27 @@ int main(int argc, char **argv)
 
 	/* Sending .txt file over network with session key*/
 	printf("\n****************************************** Sending file over network ****************************************** \n");
+	gettimeofday(&now, NULL);
+	prev_time_file = now.tv_sec * 1000000 + now.tv_usec;
+	printf("File time before send: %lu\n", prev_time_file);
+	bzero(buf, 1024);
+	memcpy(buf, (unsigned char*)&prev_time_file, 8);
+
+	// for(int i=0;i<8;i++)
+	// {
+	// 	printf("%hhu ",buf[i]);
+	// }
+	// printf("\n");
+
+	if (sendto(sfd, buf, 8, 0, (struct sockaddr *)&ap_address, sizeof(ap_address)) == -1)
+	{
+		printf("[-] Sendto failed for file time\n");
+	}
+	else
+	{
+		printf("[+] Sendto successful for file time\n");
+	}
+
 	// buf[1024];
 	// hash[32];
 	bzero(hash, 32);
@@ -404,6 +497,7 @@ int main(int argc, char **argv)
 	int fd_read;
 	unsigned long long offset_pos = 0;
 	char *fileName = "ABC.txt";
+	// char *fileName = "ABC.pdf";
 	fd_read = open(fileName, O_RDONLY);
 	if ((fd_read != -1))
 	{
